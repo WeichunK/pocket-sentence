@@ -10,9 +10,11 @@ interface InteractivePracticeProps {
     sentence: Sentence;
     onBack: () => void;
     onComplete: () => void;
+    mode?: 'practice' | 'review';
+    onRate?: (quality: number) => void;
 }
 
-export default function InteractivePractice({ sentence, onBack, onComplete }: InteractivePracticeProps) {
+export default function InteractivePractice({ sentence, onBack, onComplete, mode = 'practice', onRate }: InteractivePracticeProps) {
     const [input, setInput] = useState('');
     const [status, setStatus] = useState<'idle' | 'correct' | 'incorrect'>('idle');
     const [attempts, setAttempts] = useState(0);
@@ -36,7 +38,7 @@ export default function InteractivePractice({ sentence, onBack, onComplete }: In
                 onClick={onBack}
                 className="flex items-center text-gray-500 hover:text-gray-800 mb-6 transition-colors"
             >
-                <ArrowLeft size={20} className="mr-1" /> Back to study
+                <ArrowLeft size={20} className="mr-1" /> {mode === 'review' ? 'Quit Review' : 'Back to study'}
             </button>
 
             <motion.div
@@ -92,12 +94,36 @@ export default function InteractivePractice({ sentence, onBack, onComplete }: In
                             </motion.div>
                             <h3 className="text-2xl font-bold text-gray-800 mb-2">Excellent!</h3>
                             <p className="text-gray-500 mb-6">You used the sentence correctly in context.</p>
-                            <button
-                                onClick={onBack}
-                                className="px-8 py-3 bg-blue-600 text-white rounded-full font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200"
-                            >
-                                Continue Practice
-                            </button>
+
+                            {mode === 'review' ? (
+                                <div className="flex gap-3 justify-center">
+                                    <button
+                                        onClick={() => onRate?.(5)}
+                                        className="px-6 py-3 bg-green-100 text-green-700 rounded-xl font-bold hover:bg-green-200 transition-colors"
+                                    >
+                                        Easy
+                                    </button>
+                                    <button
+                                        onClick={() => onRate?.(4)}
+                                        className="px-6 py-3 bg-blue-100 text-blue-700 rounded-xl font-bold hover:bg-blue-200 transition-colors"
+                                    >
+                                        Good
+                                    </button>
+                                    <button
+                                        onClick={() => onRate?.(3)}
+                                        className="px-6 py-3 bg-yellow-100 text-yellow-700 rounded-xl font-bold hover:bg-yellow-200 transition-colors"
+                                    >
+                                        Hard
+                                    </button>
+                                </div>
+                            ) : (
+                                <button
+                                    onClick={onComplete}
+                                    className="px-8 py-3 bg-blue-600 text-white rounded-full font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200"
+                                >
+                                    Continue Practice
+                                </button>
+                            )}
                         </div>
                     ) : (
                         <form onSubmit={handleSubmit} className="relative">

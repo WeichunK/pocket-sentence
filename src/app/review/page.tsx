@@ -27,16 +27,31 @@ export default function ReviewPage() {
         fetchReviews();
     }, []);
 
-    const handleNext = async () => {
-        // Update review date in DB (Simple logic: push back 3 days)
-        // In a real app, we'd call an API to update the specific record based on performance.
-        // For MVP, we just move to the next card locally.
-
+    const handleNext = () => {
         if (currentIndex < sentences.length - 1) {
             setCurrentIndex(prev => prev + 1);
         } else {
             setIsComplete(true);
         }
+    };
+
+    const handleRate = async (quality: number) => {
+        // Call API to save learning record with quality
+        try {
+            await fetch('/api/learning-records', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    sentenceId: sentences[currentIndex].id,
+                    userId: 'user-1', // Hardcoded for MVP
+                    quality
+                }),
+            });
+        } catch (error) {
+            console.error('Failed to save progress', error);
+        }
+
+        handleNext();
     };
 
     if (loading) {
@@ -97,6 +112,8 @@ export default function ReviewPage() {
                     sentence={sentences[currentIndex]}
                     onBack={() => { }} // Disable back in review mode? Or maybe go to home.
                     onComplete={handleNext}
+                    mode="review"
+                    onRate={handleRate}
                 />
             </div>
         </div>

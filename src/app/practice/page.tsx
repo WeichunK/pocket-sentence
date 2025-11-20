@@ -48,7 +48,10 @@ export default function PracticePage() {
                 await fetch('/api/learning-records', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ sentenceId: selectedSentence.id }),
+                    body: JSON.stringify({
+                        sentenceId: selectedSentence.id,
+                        userId: 'user-1'
+                    }),
                 });
             } catch (error) {
                 console.error('Failed to save progress', error);

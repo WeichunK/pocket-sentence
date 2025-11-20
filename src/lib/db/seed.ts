@@ -43,6 +43,9 @@ function seed() {
     console.log('Initializing DB...');
     initDB();
 
+    console.log('Seeding default user...');
+    db.prepare("INSERT OR IGNORE INTO users (id, level, subscription_type) VALUES (?, 'Beginner', 'Free')").run('user-1');
+
     console.log('Seeding sentences...');
     const insertStmt = db.prepare(`
     INSERT INTO sentences (id, text, translation, audio_url, vocabulary, grammar_explanation, context_usage, level)
