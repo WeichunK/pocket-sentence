@@ -1,13 +1,46 @@
+'use client';
+
 import Link from 'next/link';
-import { ArrowRight, BookOpen, History, RefreshCw } from 'lucide-react';
+import { ArrowRight, BookOpen, History, RefreshCw, Flame } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 export default function Home() {
+  const [stats, setStats] = useState({ streak: 0, totalLearned: 0 });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchStats() {
+      try {
+        const res = await fetch('/api/user-stats?userId=user-1');
+        const data = await res.json();
+        setStats(data);
+      } catch (error) {
+        console.error('Failed to fetch stats', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchStats();
+  }, []);
+
   return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6">
       <div className="max-w-md w-full text-center space-y-8">
         <div className="space-y-2">
           <h1 className="text-4xl font-black text-gray-900 tracking-tighter">Pocket Sentence</h1>
           <p className="text-xl text-gray-500">Your daily dose of English mastery.</p>
+        </div>
+
+        {/* Streak Display */}
+        <div className="flex justify-center gap-4">
+          <div className="flex items-center gap-2 px-4 py-2 bg-orange-50 text-orange-600 rounded-full font-bold border border-orange-100">
+            <Flame size={20} className={stats.streak > 0 ? "fill-orange-500 animate-pulse" : ""} />
+            <span>{stats.streak} Day Streak</span>
+          </div>
+          <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-full font-bold border border-blue-100">
+            <BookOpen size={20} />
+            <span>{stats.totalLearned} Learned</span>
+          </div>
         </div>
 
         <div className="grid gap-4">
