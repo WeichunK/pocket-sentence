@@ -1,180 +1,154 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Volume2, Mic, CheckCircle, AlertCircle, ArrowRight, RotateCcw } from 'lucide-react';
 import { Sentence } from '@/types';
-import { motion } from 'framer-motion';
-import { Send, CheckCircle, XCircle, RefreshCw, ArrowLeft } from 'lucide-react';
-import clsx from 'clsx';
+import { useSpeech } from '@/lib/hooks/useSpeech';
+import confetti from 'canvas-confetti';
 
 interface InteractivePracticeProps {
     sentence: Sentence;
-    onBack: () => void;
-    onComplete: () => void;
-    mode?: 'practice' | 'review';
-    onRate?: (quality: number) => void;
-    onSuccess?: () => void;
+    onNext: () => void;
+    onSuccess: () => void;
 }
 
-export default function InteractivePractice({ sentence, onBack, onComplete, mode = 'practice', onRate, onSuccess }: InteractivePracticeProps) {
-    const [input, setInput] = useState('');
-    const [status, setStatus] = useState<'idle' | 'correct' | 'incorrect'>('idle');
-    const [attempts, setAttempts] = useState(0);
+export default function InteractivePractice({ sentence, onNext, onSuccess }: InteractivePracticeProps) {
+    const [userInput, setUserInput] = useState('');
+    const [showHint, setShowHint] = useState(false);
+    const [feedback, setFeedback] = useState<'idle' | 'correct' | 'incorrect'>('idle');
+    const [shake, setShake] = useState(false);
+    const { speak, speaking, supported: ttsSupported } = useSpeech();
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        const normalizedInput = input.trim().toLowerCase().replace(/[.,!?]/g, '');
-        const normalizedTarget = sentence.text.trim().toLowerCase().replace(/[.,!?]/g, '');
+    // Reset state when sentence changes
+    useEffect(() => {
+        setUserInput('');
+        setShowHint(false);
+        setFeedback('idle');
+        setShake(false);
+    }, [sentence]);
 
-        if (normalizedInput === normalizedTarget) {
-            setStatus('correct');
-            if (mode === 'practice') {
-                onSuccess?.();
-            }
+    const checkAnswer = useCallback(() => {
+        const normalize = (text: string) => text.toLowerCase().replace(/[.,?!]/g, '').trim();
+        // Use sentence.text instead of sentence.english
+        const isCorrect = normalize(userInput) === normalize(sentence.text);
+
+        if (isCorrect) {
+            setFeedback('correct');
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 }
+            });
+            speak(sentence.text); // Use sentence.text
+            onSuccess();
         } else {
-            setStatus('incorrect');
-            setAttempts(prev => prev + 1);
+            setFeedback('incorrect');
+            setShake(true);
+            setTimeout(() => setShake(false), 500);
+        }
+    }, [userInput, sentence.text, onSuccess, speak]);
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            if (feedback === 'correct') {
+                onNext();
+            } else {
+                checkAnswer();
+            }
         }
     };
 
     return (
-        <div className="max-w-2xl mx-auto">
-            <button
-                onClick={onBack}
-                className="flex items-center text-gray-500 hover:text-gray-800 mb-6 transition-colors"
-            >
-                <ArrowLeft size={20} className="mr-1" /> {mode === 'review' ? 'Quit Review' : 'Back to study'}
-            </button>
-
+        <div className="max-w-2xl mx-auto space-y-8">
+            {/* Context Card */}
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 flex flex-col min-h-[500px]"
+                className="bg-white rounded-3xl p-8 shadow-xl shadow-blue-900/5 border border-blue-50"
             >
-                {/* Header / Context */}
-                <div className="bg-blue-600 p-6 text-white">
-                    <h3 className="text-lg font-bold mb-2 opacity-90">Roleplay Scenario</h3>
-                    <p className="text-blue-100 text-lg leading-relaxed">
-                        {sentence.context_usage}
-                    </p>
-                </div>
-
-                {/* Chat Area */}
-                <div className="flex-1 p-6 bg-gray-50 flex flex-col gap-4 overflow-y-auto">
-                    <div className="flex gap-3">
-                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
-                            AI
-                        </div>
-                        <div className="bg-white p-4 rounded-2xl rounded-tl-none shadow-sm text-gray-800 max-w-[80%]">
-                            <p>{sentence.practice_scenario || "Imagine you are in this situation. How would you respond using the sentence you just learned?"}</p>
-                        </div>
+                <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                        <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                            Translate this
+                        </span>
+                        {ttsSupported && (
+                            <button
+                                onClick={() => speak(sentence.text)} // Use sentence.text
+                                disabled={speaking}
+                                className="p-2 text-gray-400 hover:text-blue-600 transition-colors rounded-full hover:bg-blue-50"
+                            >
+                                <Volume2 size={20} className={speaking ? 'animate-pulse' : ''} />
+                            </button>
+                        )}
                     </div>
 
-                    {status === 'correct' && (
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            className="flex gap-3 justify-end"
-                        >
-                            <div className="bg-green-600 text-white p-4 rounded-2xl rounded-tr-none shadow-sm max-w-[80%]">
-                                <p>{sentence.text}</p>
-                            </div>
-                            <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600 font-bold">
-                                You
-                            </div>
-                        </motion.div>
+                    <h2 className="text-3xl font-bold text-gray-900 leading-tight">
+                        {sentence.translation}
+                    </h2>
+
+                    {sentence.practice_scenario && (
+                        <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 text-gray-600 text-sm italic">
+                            <span className="font-semibold not-italic text-gray-900 block mb-1">Scenario:</span>
+                            {sentence.practice_scenario}
+                        </div>
                     )}
                 </div>
+            </motion.div>
 
-                {/* Input Area */}
-                <div className="p-4 bg-white border-t border-gray-100">
-                    {status === 'correct' ? (
-                        <div className="text-center py-4">
-                            <motion.div
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
-                                className="inline-flex items-center justify-center w-16 h-16 bg-green-100 text-green-600 rounded-full mb-4"
-                            >
-                                <CheckCircle size={32} />
-                            </motion.div>
-                            <h3 className="text-2xl font-bold text-gray-800 mb-2">Excellent!</h3>
-                            <p className="text-gray-500 mb-6">You used the sentence correctly in context.</p>
+            {/* Input Area */}
+            <motion.div
+                animate={shake ? { x: [-10, 10, -10, 10, 0] } : {}}
+                className="space-y-4"
+            >
+                <div className="relative">
+                    <input
+                        type="text"
+                        value={userInput}
+                        onChange={(e) => setUserInput(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        placeholder="Type the English sentence..."
+                        className={`w-full p-6 text-xl rounded-2xl border-2 outline-none transition-all shadow-sm
+              ${feedback === 'correct'
+                                ? 'border-green-500 bg-green-50 text-green-900'
+                                : feedback === 'incorrect'
+                                    ? 'border-red-300 bg-red-50 text-red-900 focus:border-red-500'
+                                    : 'border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10'
+                            }`}
+                        autoFocus
+                    />
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 flex gap-2">
+                        {feedback === 'correct' && <CheckCircle className="text-green-500 w-8 h-8" />}
+                        {feedback === 'incorrect' && <AlertCircle className="text-red-500 w-8 h-8" />}
+                    </div>
+                </div>
 
-                            {mode === 'review' ? (
-                                <div className="flex gap-3 justify-center">
-                                    <button
-                                        onClick={() => onRate?.(5)}
-                                        className="px-6 py-3 bg-green-100 text-green-700 rounded-xl font-bold hover:bg-green-200 transition-colors"
-                                    >
-                                        Easy
-                                    </button>
-                                    <button
-                                        onClick={() => onRate?.(4)}
-                                        className="px-6 py-3 bg-blue-100 text-blue-700 rounded-xl font-bold hover:bg-blue-200 transition-colors"
-                                    >
-                                        Good
-                                    </button>
-                                    <button
-                                        onClick={() => onRate?.(3)}
-                                        className="px-6 py-3 bg-yellow-100 text-yellow-700 rounded-xl font-bold hover:bg-yellow-200 transition-colors"
-                                    >
-                                        Hard
-                                    </button>
-                                </div>
-                            ) : (
-                                <button
-                                    onClick={onComplete}
-                                    className="px-8 py-3 bg-blue-600 text-white rounded-full font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200"
-                                >
-                                    Continue Practice
-                                </button>
-                            )}
-                        </div>
-                    ) : (
-                        <form onSubmit={handleSubmit} className="relative">
-                            <input
-                                type="text"
-                                value={input}
-                                onChange={(e) => {
-                                    setInput(e.target.value);
-                                    setStatus('idle');
-                                }}
-                                placeholder="Type your response here..."
-                                className={clsx(
-                                    "w-full p-4 pr-14 rounded-xl border-2 outline-none transition-all",
-                                    status === 'incorrect'
-                                        ? "border-red-300 bg-red-50 text-red-900 placeholder-red-300 focus:border-red-500"
-                                        : "border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
-                                )}
-                            />
+                {/* Feedback & Controls */}
+                <div className="flex items-center justify-between">
+                    <button
+                        onClick={() => setShowHint(!showHint)}
+                        className="text-sm text-gray-500 hover:text-blue-600 font-medium transition-colors"
+                    >
+                        {showHint ? sentence.text : 'Need a hint?'}
+                    </button>
+
+                    <div className="flex gap-3">
+                        {feedback !== 'correct' ? (
                             <button
-                                type="submit"
-                                disabled={!input.trim()}
-                                className="absolute right-2 top-2 bottom-2 w-12 bg-blue-600 text-white rounded-lg flex items-center justify-center hover:bg-blue-700 disabled:opacity-50 disabled:hover:bg-blue-600 transition-colors"
+                                onClick={checkAnswer}
+                                className="px-8 py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-600/20 hover:bg-blue-700 hover:scale-105 transition-all active:scale-95"
                             >
-                                <Send size={20} />
+                                Check Answer
                             </button>
-
-                            {status === 'incorrect' && (
-                                <motion.div
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    className="absolute bottom-full left-0 mb-2 text-red-500 text-sm font-medium flex items-center gap-1"
-                                >
-                                    <XCircle size={14} />
-                                    Not quite. Try again!
-                                    {attempts >= 3 && (
-                                        <button
-                                            type="button"
-                                            onClick={() => setInput(sentence.text)}
-                                            className="ml-2 underline text-blue-500 hover:text-blue-700"
-                                        >
-                                            Show Answer
-                                        </button>
-                                    )}
-                                </motion.div>
-                            )}
-                        </form>
-                    )}
+                        ) : (
+                            <button
+                                onClick={onNext}
+                                className="px-8 py-3 bg-green-500 text-white rounded-xl font-bold shadow-lg shadow-green-500/20 hover:bg-green-600 hover:scale-105 transition-all active:scale-95 flex items-center gap-2"
+                            >
+                                Continue <ArrowRight size={20} />
+                            </button>
+                        )}
+                    </div>
                 </div>
             </motion.div>
         </div>
