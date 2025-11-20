@@ -13,4 +13,5 @@ export interface Sentence {
     grammar_explanation: string;
     context_usage: string;
     level: string;
+    practice_scenario?: string;
 }

@@ -65,7 +65,7 @@ export default function InteractivePractice({ sentence, onBack, onComplete, mode
                             AI
                         </div>
                         <div className="bg-white p-4 rounded-2xl rounded-tl-none shadow-sm text-gray-800 max-w-[80%]">
-                            <p>Imagine you are in this situation. How would you respond using the sentence you just learned?</p>
+                            <p>{sentence.practice_scenario || "Imagine you are in this situation. How would you respond using the sentence you just learned?"}</p>
                         </div>
                     </div>
 
