@@ -2,8 +2,9 @@
 
 import { Sentence } from '@/types';
 import { motion } from 'framer-motion';
-import { Volume2, ArrowLeft, BookOpen, MessageCircle } from 'lucide-react';
+import { Volume2, ArrowLeft, BookOpen, MessageCircle, Loader2 } from 'lucide-react';
 import { useState } from 'react';
+import { useSpeech } from '@/lib/hooks/useSpeech';
 
 interface StudyCardProps {
     sentence: Sentence;
@@ -13,6 +14,7 @@ interface StudyCardProps {
 
 export default function StudyCard({ sentence, onBack, onComplete }: StudyCardProps) {
     const [showDetails, setShowDetails] = useState(false);
+    const { speak, speaking, supported } = useSpeech();
 
     return (
         <div className="max-w-2xl mx-auto">
@@ -34,8 +36,12 @@ export default function StudyCard({ sentence, onBack, onComplete }: StudyCardPro
                     </h3>
                     <p className="text-lg text-gray-600 mb-8">{sentence.translation}</p>
 
-                    <button className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-white shadow-md text-blue-600 hover:scale-105 transition-transform">
-                        <Volume2 size={24} />
+                    <button
+                        onClick={() => speak(sentence.text)}
+                        disabled={!supported || speaking}
+                        className={`inline-flex items-center justify-center w-12 h-12 rounded-full bg-white shadow-md transition-all ${speaking ? 'text-blue-400 scale-95' : 'text-blue-600 hover:scale-105'}`}
+                    >
+                        {speaking ? <Loader2 className="animate-spin" size={24} /> : <Volume2 size={24} />}
                     </button>
                 </div>
 
