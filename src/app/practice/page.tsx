@@ -95,8 +95,7 @@ export default function PracticePage() {
                     {mode === 'interactive' && selectedSentence && (
                         <InteractivePractice
                             sentence={selectedSentence}
-                            onBack={() => setMode('study')}
-                            onComplete={handleComplete}
+                            onNext={handleComplete}
                             onSuccess={handleSuccess}
                         />
                     )}
