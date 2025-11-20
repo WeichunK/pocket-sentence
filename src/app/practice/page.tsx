@@ -42,7 +42,7 @@ export default function PracticePage() {
         setMode('interactive');
     };
 
-    const handleCompletePractice = async () => {
+    const handleSuccess = async () => {
         if (selectedSentence) {
             try {
                 await fetch('/api/learning-records', {
@@ -57,6 +57,9 @@ export default function PracticePage() {
                 console.error('Failed to save progress', error);
             }
         }
+    };
+
+    const handleComplete = () => {
         handleBack();
     };
 
@@ -93,7 +96,8 @@ export default function PracticePage() {
                         <InteractivePractice
                             sentence={selectedSentence}
                             onBack={() => setMode('study')}
-                            onComplete={handleCompletePractice}
+                            onComplete={handleComplete}
+                            onSuccess={handleSuccess}
                         />
                     )}
                 </main>

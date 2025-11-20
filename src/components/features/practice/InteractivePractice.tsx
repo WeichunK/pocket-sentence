@@ -12,9 +12,10 @@ interface InteractivePracticeProps {
     onComplete: () => void;
     mode?: 'practice' | 'review';
     onRate?: (quality: number) => void;
+    onSuccess?: () => void;
 }
 
-export default function InteractivePractice({ sentence, onBack, onComplete, mode = 'practice', onRate }: InteractivePracticeProps) {
+export default function InteractivePractice({ sentence, onBack, onComplete, mode = 'practice', onRate, onSuccess }: InteractivePracticeProps) {
     const [input, setInput] = useState('');
     const [status, setStatus] = useState<'idle' | 'correct' | 'incorrect'>('idle');
     const [attempts, setAttempts] = useState(0);
@@ -26,6 +27,9 @@ export default function InteractivePractice({ sentence, onBack, onComplete, mode
 
         if (normalizedInput === normalizedTarget) {
             setStatus('correct');
+            if (mode === 'practice') {
+                onSuccess?.();
+            }
         } else {
             setStatus('incorrect');
             setAttempts(prev => prev + 1);
