@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { auth } from '@/auth';
 
 export async function GET(request: NextRequest) {
     try {
-        const searchParams = request.nextUrl.searchParams;
-        const userId = searchParams.get('userId') || 'user-1';
+        const session = await auth();
+        if (!session?.user?.id) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+        const userId = session.user.id;
 
         // Get all distinct learning dates for the user, sorted descending
         const records = db.prepare(`

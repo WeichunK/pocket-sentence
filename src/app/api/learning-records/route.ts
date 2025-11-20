@@ -2,11 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
 import { calculateSM2 } from '@/lib/srs';
+import { auth } from '@/auth';
 
 export async function POST(request: NextRequest) {
     try {
+        const session = await auth();
+        if (!session?.user?.id) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+        const userId = session.user.id;
+
         const body = await request.json();
-        const { userId = 'user-1', sentenceId, quality = 4 } = body; // Default userId for MVP, quality to 4
+        const { sentenceId, quality = 4 } = body;
 
         // Check if record exists
         const existingRecord = db.prepare('SELECT * FROM learning_records WHERE user_id = ? AND sentence_id = ?').get(userId, sentenceId) as any;

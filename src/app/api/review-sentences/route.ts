@@ -1,32 +1,38 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { auth } from '@/auth';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
     try {
+        const session = await auth();
+        if (!session?.user?.id) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+        const userId = session.user.id;
+
+        // Fetch settings
+        const retentionSetting = db.prepare("SELECT value FROM settings WHERE key = 'retention_period_days'").get() as { value: string };
+        const retentionDays = parseInt(retentionSetting?.value || '365');
+
         const now = Math.floor(Date.now() / 1000);
 
-        // Get retention setting
-        const settingRow = db.prepare("SELECT value FROM settings WHERE key = 'retention_period_days'").get() as { value: string };
-        const retentionDays = parseInt(settingRow?.value || '365');
-        const retentionSeconds = retentionDays * 86400;
-        const cutoffDate = now - retentionSeconds;
-
-        // Fetch sentences that have a learning record with next_review_date <= now AND date_learned >= cutoffDate
-        const sentences = db.prepare(`
-      SELECT s.* 
+        // Get sentences due for review
+        // Logic:
+        // 1. Must have a learning record for this user
+        // 2. next_review_date <= now
+        // 3. Within retention period
+        const reviews = db.prepare(`
+      SELECT s.*, lr.easiness_factor, lr.repetitions, lr.interval_days
       FROM sentences s
       JOIN learning_records lr ON s.id = lr.sentence_id
-      WHERE lr.next_review_date <= ? AND lr.date_learned >= ?
-    `).all(now, cutoffDate);
+      WHERE lr.user_id = ?
+    AND lr.next_review_date <= ?
+        AND lr.date_learned >= ?
+            `).all(userId, now, now - (retentionDays * 86400));
 
-        const formattedSentences = sentences.map((s: any) => ({
-            ...s,
-            vocabulary: JSON.parse(s.vocabulary || '[]')
-        }));
-
-        return NextResponse.json(formattedSentences);
+        return NextResponse.json(reviews);
     } catch (error) {
-        console.error('Database error:', error);
-        return NextResponse.json({ error: 'Failed to fetch review sentences' }, { status: 500 });
+        console.error('Failed to fetch reviews', error);
+        return NextResponse.json({ error: 'Failed to fetch reviews' }, { status: 500 });
     }
 }

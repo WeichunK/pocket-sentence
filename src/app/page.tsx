@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, BookOpen, History, RefreshCw, Flame } from 'lucide-react';
+import { ArrowRight, BookOpen, History, RefreshCw, Flame, LogOut } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { signOut } from 'next-auth/react';
 
 export default function Home() {
   const [stats, setStats] = useState({ streak: 0, totalLearned: 0 });
@@ -11,9 +12,11 @@ export default function Home() {
   useEffect(() => {
     async function fetchStats() {
       try {
-        const res = await fetch('/api/user-stats?userId=user-1');
-        const data = await res.json();
-        setStats(data);
+        const res = await fetch('/api/user-stats'); // No userId param needed now
+        if (res.ok) {
+          const data = await res.json();
+          setStats(data);
+        }
       } catch (error) {
         console.error('Failed to fetch stats', error);
       } finally {
@@ -24,7 +27,14 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6">
+    <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 relative">
+      <button
+        onClick={() => signOut()}
+        className="absolute top-6 right-6 flex items-center text-gray-500 hover:text-red-600 transition-colors"
+      >
+        <LogOut size={20} className="mr-2" /> Sign Out
+      </button>
+
       <div className="max-w-md w-full text-center space-y-8">
         <div className="space-y-2">
           <h1 className="text-4xl font-black text-gray-900 tracking-tighter">Pocket Sentence</h1>
