@@ -5,6 +5,7 @@ import { Sentence } from '@/types';
 import DailyList from '@/components/features/practice/DailyList';
 import StudyCard from '@/components/features/practice/StudyCard';
 import InteractivePractice from '@/components/features/practice/InteractivePractice';
+import GenerateSentenceButton from '@/components/features/practice/GenerateSentenceButton';
 import { Loader2 } from 'lucide-react';
 
 export default function PracticePage() {
@@ -12,19 +13,22 @@ export default function PracticePage() {
     const [loading, setLoading] = useState(true);
     const [selectedSentence, setSelectedSentence] = useState<Sentence | null>(null);
     const [mode, setMode] = useState<'list' | 'study' | 'interactive'>('list');
+    const [userLevel, setUserLevel] = useState<'Beginner' | 'Intermediate' | 'Advanced'>('Beginner');
+
+    const fetchSentences = async () => {
+        try {
+            setLoading(true);
+            const res = await fetch('/api/daily-sentences');
+            const data = await res.json();
+            setSentences(data);
+        } catch (error) {
+            console.error('Failed to fetch sentences', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        async function fetchSentences() {
-            try {
-                const res = await fetch('/api/daily-sentences');
-                const data = await res.json();
-                setSentences(data);
-            } catch (error) {
-                console.error('Failed to fetch sentences', error);
-            } finally {
-                setLoading(false);
-            }
-        }
         fetchSentences();
     }, []);
 
@@ -75,8 +79,29 @@ export default function PracticePage() {
         <div className="min-h-screen bg-gray-50 p-4 md:p-8">
             <div className="max-w-4xl mx-auto">
                 <header className="mb-8">
-                    <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Pocket Sentence</h1>
-                    <p className="text-gray-500 mt-2">Master English, one sentence at a time.</p>
+                    <div className="flex items-center justify-between mb-4">
+                        <div>
+                            <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Pocket Sentence</h1>
+                            <p className="text-gray-500 mt-2">Master English, one sentence at a time.</p>
+                        </div>
+                        {mode === 'list' && (
+                            <div className="flex items-center gap-4">
+                                <select
+                                    value={userLevel}
+                                    onChange={(e) => setUserLevel(e.target.value as any)}
+                                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="Beginner">初級</option>
+                                    <option value="Intermediate">中級</option>
+                                    <option value="Advanced">高級</option>
+                                </select>
+                                <GenerateSentenceButton
+                                    level={userLevel}
+                                    onGenerated={fetchSentences}
+                                />
+                            </div>
+                        )}
+                    </div>
                 </header>
 
                 <main>

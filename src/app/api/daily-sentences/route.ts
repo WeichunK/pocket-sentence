@@ -10,12 +10,21 @@ export async function GET() {
         }
         // const userId = session.user.id; // Can be used for filtering later
 
-        // In a real app, this would select based on user level and date.
-        // For MVP, we just pick 3 random sentences.
-        const sentences = db.prepare('SELECT * FROM sentences ORDER BY RANDOM() LIMIT 5').all();
+        // Get a mix of seed and AI-generated sentences
+        // Prioritize variety: include both types if available
+        const allSentences = db.prepare(`
+            SELECT * FROM sentences 
+            ORDER BY 
+                CASE 
+                    WHEN source = 'ai-generated' THEN 1 
+                    ELSE 2 
+                END,
+                RANDOM() 
+            LIMIT 5
+        `).all();
 
         // Parse JSON fields
-        const formattedSentences = sentences.map((s: any) => ({
+        const formattedSentences = allSentences.map((s: any) => ({
             ...s,
             vocabulary: JSON.parse(s.vocabulary || '[]')
         }));
