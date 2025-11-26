@@ -77,7 +77,7 @@ Generate the sentence now:`;
             generationConfig: {
                 temperature: 0.9,
                 topP: 0.95,
-                maxOutputTokens: 2048, // Increased from 1024
+                maxOutputTokens: 8192, // Maximum for gemini-pro to handle complex Advanced content
                 responseMimeType: "application/json", // Force JSON response
             }
         });
